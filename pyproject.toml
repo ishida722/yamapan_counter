@@ -1,0 +1,27 @@
+[project]
+name = "yamapan-counter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "ishida", email = "ishida@laboro.ai" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "easyocr>=1.7.2",
+    "ipykernel>=6.29.5",
+    "nbformat>=5.10.4",
+    "numpy>=2.2.4",
+    "pillow>=11.1.0",
+    "plotly>=6.0.1",
+    "polars>=1.25.2",
+    "pytesseract>=0.3.13",
+    "streamlit>=1.43.2",
+]
+
+[project.scripts]
+yamapan-counter = "yamapan_counter:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
