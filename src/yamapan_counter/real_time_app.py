@@ -50,10 +50,11 @@ target = frame[guid_pt1[1] : guid_pt2[1], guid_pt1[0] : guid_pt2[0]]
 # ターゲットをリサイズ
 target = cv2.resize(target, (2600, 3900))
 # ポイント画像検出
-detector = PointImageDetector()
-ocr = PointImageOcr()
-point_image = detector.get_point_images(target)
-points = [ocr.read_point(im) for im in point_image]
+with st.spinner("画像検出中..."):
+    detector = PointImageDetector()
+    ocr = PointImageOcr()
+    point_image = detector.get_point_images(target)
+    points = [ocr.read_point(im) for im in point_image]
 st.write(f"{sum(points)}点")
 
 cap.release()
