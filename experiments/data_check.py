@@ -191,8 +191,8 @@ def rotate_image(image_mat: np.ndarray, angle: float):
 
 
 def read_point(image_mat: np.ndarray):
-    # return reader.readtext(image_mat, allowlist="0123456789")
-    return reader.readtext(image_mat)
+    return reader.readtext(image_mat, allowlist="0123456789")
+    # return reader.readtext(image_mat)
 
 
 def get_point(image_mat: np.ndarray):
