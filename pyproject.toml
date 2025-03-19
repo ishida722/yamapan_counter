@@ -18,6 +18,7 @@ dependencies = [
     "pytesseract>=0.3.13",
     "pytest>=8.3.5",
     "streamlit>=1.43.2",
+    "torch>=2.6.0",
 ]
 
 [project.scripts]

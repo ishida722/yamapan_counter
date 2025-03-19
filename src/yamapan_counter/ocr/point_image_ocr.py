@@ -39,6 +39,9 @@ class PointImageOcr:
             image = self.rotate_image(image_mat, angle)
             # 画像から数字を読み取る
             ocr_results = self._read_point(image)
+            # なぜか1の時だけ読み取れないので応急処置
+            if not ocr_results:
+                return self.convert_str_to_point("1")
             # 読み取り結果が正しいか確認
             if self.check_ocr_results(ocr_results):
                 # 正しい結果が得られた場合は数字のリストを返す

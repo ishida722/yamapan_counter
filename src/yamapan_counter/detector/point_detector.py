@@ -23,17 +23,36 @@ class match_result:
         return pl.DataFrame(
             [(m.x, m.y, m.value, m.x1, m.y1, m.x2, m.y2) for m in match],
             schema=["x", "y", "value", "x1", "y1", "x2", "y2"],
+            orient="row",
         )
 
     @staticmethod
     def from_polars(df: pl.DataFrame) -> list[match_result]:
-        return [match_result(*row) for row in df.to_numpy().to_list()]
+        return [match_result(*row) for row in df.iter_rows()]
 
 
 class PointImageDetector:
     def __init__(self):
-        self.template_image: Final[np.ndarray] = cv2.imread("data/avg_img.png")
-        pass
+        template_image: np.ndarray = cv2.imread(
+            "src/yamapan_counter/template/avg_img.png"
+        )
+        template_image = cv2.cvtColor(template_image, cv2.COLOR_BGR2GRAY)
+        self.template_image: Final[np.ndarray] = template_image
+
+    def get_point_images(
+        self,
+        image: np.ndarray,
+        n: int = 30,
+    ) -> list[np.ndarray]:
+        # テンプレートマッチング
+        match = self.match_template(image, n)
+        # マッチング結果のフィルタリング
+        match = self.filter_match(match)
+        # マッチング結果から画像を取得
+        images = self.get_match_images(image, match)
+        # 画像からポイント画像を取得
+        images = [self.get_point_image(im) for im in images]
+        return images
 
     def match_template(self, image: np.ndarray, n: int = 30) -> list[match_result]:
         match = []
