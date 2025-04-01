@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Final
 
 import cv2
@@ -31,6 +31,19 @@ class match_result:
         return [match_result(*row) for row in df.iter_rows()]
 
 
+@dataclass
+class PointImageDetectorResult:
+    images: list[np.ndarray] = field(
+        metadata={"description": "検出されたポイント画像のリスト"}
+    )
+    rect_point_image: np.ndarray = field(
+        metadata={"description": "ポイントを強調表示した画像"}
+    )
+    replaced_image: np.ndarray = field(
+        metadata={"description": "元画像を抽出したポイント画像で置き換えた画像"}
+    )
+
+
 class PointImageDetector:
     def __init__(self):
         template_image: np.ndarray = cv2.imread(
@@ -43,16 +56,24 @@ class PointImageDetector:
         self,
         image: np.ndarray,
         n: int = 30,
-    ) -> list[np.ndarray]:
+    ) -> PointImageDetectorResult:
         # テンプレートマッチング
         match = self.match_template(image, n)
         # マッチング結果のフィルタリング
         match = self.filter_match(match)
         # マッチング結果から画像を取得
         images = self.get_match_images(image, match)
+        # ポイントを強調表示した画像を作成
+        rect_point_image = self.highlight_points(image, match)
         # 画像からポイント画像を取得
         images = [self.get_point_image(im) for im in images]
-        return images
+        # 元画像を抽出したポイント画像で置き換えた画像を作成
+        replaced_image = self.replace_images(image, match, images)
+        return PointImageDetectorResult(
+            images=images,
+            rect_point_image=rect_point_image,
+            replaced_image=replaced_image,
+        )
 
     def match_template(self, image: np.ndarray, n: int = 30) -> list[match_result]:
         match = []
@@ -96,6 +117,37 @@ class PointImageDetector:
         self, image: np.ndarray, match: list[match_result]
     ) -> list[np.ndarray]:
         return [image[m.y1 : m.y2, m.x1 : m.x2] for m in match]
+
+    # 元画像を抽出したポイント画像で置き換えた画像を作成
+    def replace_images(
+        self,
+        image: np.ndarray,
+        match: list[match_result],
+        point_images: list[np.ndarray],
+    ) -> np.ndarray:
+        new_image = image.copy()
+        new_image = cv2.cvtColor(new_image, cv2.COLOR_BGR2GRAY)
+        for m, point_image in zip(match, point_images):
+            new_image[m.y1 : m.y2, m.x1 : m.x2] = point_image
+        new_image = cv2.cvtColor(new_image, cv2.COLOR_GRAY2BGR)
+        return new_image
+
+    # ポイント部分を強調したあたらしい画像を作成
+    def highlight_points(
+        self,
+        image: np.ndarray,
+        match: list[match_result],
+    ) -> np.ndarray:
+        new_image = image.copy()
+        for m in match:
+            cv2.rectangle(
+                new_image,
+                (m.x1, m.y1),
+                (m.x2, m.y2),
+                (0, 255, 0),
+                2,
+            )
+        return new_image
 
     def binarize(self, image: np.ndarray) -> np.ndarray:
         im_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)

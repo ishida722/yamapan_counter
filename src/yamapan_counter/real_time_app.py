@@ -14,13 +14,36 @@ if "frame" not in st.session_state:
 if "guid_pt" not in st.session_state:
     st.session_state["guid_pt"] = None
 
-st.title("リアルタイム顔検出アプリ")
+st.title("ヤマザキ春のパン祭り 点数カウンター")
+st.markdown(""" 
+# 使い方
+1. 画像の四角内にポイントシートを合わせてください。
+2. 「判定」ボタンを押してください。
+3. しばらく待つと処理後の画像と総ポイントが表示されます。
 
-frame_placeholder = st.empty()
+デモボタンを押すと、デモ画像で処理を行います。
+""")
+
+cols = st.columns(2)
+with cols[0]:
+    frame_placeholder = st.empty()
+with cols[1]:
+    after_placeholder = st.empty()
+
 start_button_pressed = st.button("再開")
 stop_button_pressed = st.button("判定")
+demo_button_pressed = st.button("デモ")
 
-while cap.isOpened() and not stop_button_pressed:
+
+def is_playing_camera():
+    if stop_button_pressed:
+        return False
+    if demo_button_pressed:
+        return False
+    return True
+
+
+while is_playing_camera():
     ret, frame = cap.read()
     # フレームをセッションに保存
     st.session_state["frame"] = frame
@@ -28,8 +51,10 @@ while cap.isOpened() and not stop_button_pressed:
     if not ret:
         st.write("カメラから映像を取得できませんでした。")
         break
+    # フレームサイズ取得
     frame_h = frame.shape[0]
     frame_w = frame.shape[1]
+    # フレーム内ガイド矩形サイズを計算
     guid_h = int(frame_h * 0.8)
     guid_w = int(guid_h * 0.66)
     # frameにガイド矩形を描画
@@ -42,19 +67,30 @@ while cap.isOpened() and not stop_button_pressed:
     # 表示
     frame_placeholder.image(frame, channels="BGR")
 
-frame = st.session_state["frame"]
+# デモボタンが押されている場合、デモ画像で処理する
+if demo_button_pressed:
+    frame = cv2.imread("experiments/data/IMG_4183_sheet.png")
+    target = frame
+else:
+    frame = st.session_state["frame"]
+    # frameからガイド矩形(ターゲット)を切り取り
+    guid_pt1, guid_pt2 = st.session_state["guid_pt"]
+    target = frame[guid_pt1[1] : guid_pt2[1], guid_pt1[0] : guid_pt2[0]]
+    # ターゲットをリサイズ
+    target = cv2.resize(target, (2600, 3900))
+
 frame_placeholder.image(frame, channels="BGR")
-# frameからガイド矩形(ターゲット)を切り取り
-guid_pt1, guid_pt2 = st.session_state["guid_pt"]
-target = frame[guid_pt1[1] : guid_pt2[1], guid_pt1[0] : guid_pt2[0]]
-# ターゲットをリサイズ
-target = cv2.resize(target, (2600, 3900))
 # ポイント画像検出
 with st.spinner("画像検出中..."):
     detector = PointImageDetector()
     ocr = PointImageOcr()
-    point_image = detector.get_point_images(target)
-    points = [ocr.read_point(im) for im in point_image]
+    # ポイントシールを検出
+    result = detector.get_point_images(target)
+    # 表示を更新
+    after_placeholder.image(result.replaced_image, channels="BGR")
+    # シール画像からポイント読み取り、算出
+    points = [ocr.read_point(im) for im in result.images]
+
 st.write(f"{sum(points)}点")
 
 cap.release()
